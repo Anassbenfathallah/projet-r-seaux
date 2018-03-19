@@ -87,6 +87,7 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         payloadv1=userName.encode("hex")
 	pyloadv2=userId+payloadv1
         packet=struct.pack('BI',version*(2**4)+Type,sessionToken*(2**8)+
+	"multiplication bit a bit??"
 	self.transport.write(packet)
 	
 	
