@@ -2,7 +2,7 @@
 from twisted.internet.protocol import DatagramProtocol
 from c2w.main.lossy_transport import LossyTransport
 import logging
-
+from struct import *
 logging.basicConfig()
 moduleLogger = logging.getLogger('c2w.protocol.udp_chat_client_protocol')
 
@@ -76,7 +76,23 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         The client proxy calls this function when the user clicks on
         the login button.
         """
+	
         moduleLogger.debug('loginRequest called with username=%s', userName)
+        version=1
+        Type=1
+	userId=1
+        sessionToken=0
+        sequenceNumber=0
+        payloadSize=len(userName)
+        payloadv1=userName.encode("hex")
+	pyloadv2=userId+payloadv1
+        packet=struct.pack('BI',version*(2**4)+Type,sessionToken*(2**8)+
+	self.transport.write(packet)
+	
+	
+
+
+	
 
     def sendChatMessageOIE(self, message):
         """
