@@ -57,6 +57,7 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         #: to interact with the Graphical User Interface.
         self.clientProxy = clientProxy
         self.lossPr = lossPr
+        self.UserId=0
 
     def startProtocol(self):
         """
@@ -78,18 +79,15 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         """
 	
         moduleLogger.debug('loginRequest called with username=%s', userName)
-        version=1
+        Version=1
         Type=1
-	userId=1
-        sessionToken=0
-        sequenceNumber=0
-        payloadSize=len(userName)
-        payloadv1=userName.encode("hex")
-	pyloadv2=userId+payloadv1
-        packet=struct.pack('BI',version*(2**4)+Type,sessionToken*(2**8)+
-	"multiplication bit a bit??"
-	self.transport.write(packet)
-	
+        SessionToken=0
+        SequenceNumber=0
+        uName=struct.pack('>H'+str(len(userName.encode('utf-8')+'s',len(userName.encode('utf-8')),userName.encode('utf-8'))
+        Payload=struct.pack('>Hs',0,uName)
+        LoginRequest=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*SessionToken//(2**16),SequenceNumber,len(Payload),Payload)
+        self.transport.write(LoginRequest,(self.serverAddress,self.serverPort))
+	 
 	
 
 
@@ -142,4 +140,15 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         Called **by Twisted** when the client has received a UDP
         packet.
         """
+        Packet=struct.unpack('>BBHHH'+str(len(datagram)+'s',datagram)Packet=struct.unpack('>BBHHH'+str(len(datagram-8))+'s',datagram) 
+        Version=Packet[0]//2**4
+        Type=Packet[0]-Packet[0]//2**4
+        SessionToken=Packet[1]*(2**16)+Packet[2]
+        SequenceNumber=Packet[3]
+        len(Payload)=Packet[4] 
+
+        if Type!=0:## if the datagram isn't an ACK we have to send one to the server
+            
+            ACK=struct.pack('BBBHHH',1,0,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,0)
+            self.transport.write(ACK,host_port)
         pass
