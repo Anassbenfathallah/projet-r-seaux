@@ -70,6 +70,7 @@ class SibylClientUdpTextProtocol(DatagramProtocol):
             as the controller calls it.
 
         """
+        self.transport.write("MESSAGE %s\n" % line)
         pass
 
     def datagramReceived(self, datagram, host_port):
@@ -86,4 +87,7 @@ class SibylClientUdpTextProtocol(DatagramProtocol):
             as Twisted calls it.
 
         """
+        host = host_port[0]
+        port=host_port[1]
+        print("received %r from %s:%d" % (data,host,port))
         pass

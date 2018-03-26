@@ -54,5 +54,8 @@ class SibylServerUdpTextProtocol(DatagramProtocol):
                 parameters, as Twisted calls it.
 
         """
+        host = host_port[0]
+        port=host_port[1]
+        print("received %r from %s:%d" % (data,host,port))
         pass
     
