@@ -125,7 +125,30 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
             #SequenceNumber=Packet[3]
             #PayloadSize=Packet[4]
             #Payload=Packet[5]
-            def RST(
+           
+            def RST(self,Rname):
+                if Rname='Main Room':
+                    RoomID=1
+                    MovieIP=0
+                    MoviePort=0
+                    MovieL=self.serverProxy.getMovieList()
+                else:
+                    RoomID=self.serverProxy.getMovieByTitle(Rname).movieID
+                    MovieIP=self.serverProxy.getMovieAddressPort(Rname)[0]
+                    MoviePort=self.serverProxy.getMovieAddressPort(Rname)[1]           
+                    MovieL=[]
+               RoomName=struct.pack('H'+str(len(Rname))+'s',len(Rname),Rname.encode('utf-8')
+              
+               for User in self.server.getUserList() :
+                   if User.userChatRoom=='Rname'
+                       UsersList.append(struct.pack('>HH'+str(len(User))+'s',User.userid,len(User.username),userName.encode('utf-8'))
+               Userlist.append(struct.pack('>'+str(len(User)+'s',User)
+                     
+                       
+
+               
+        
+        
             #self.serverProxy.addUser(userName,'Main Room',None,host_port)
             #SequenceNumber+=1
             #RoomIdentifier=1 
