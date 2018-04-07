@@ -46,6 +46,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         #: access and modify the user list).
         self.serverProxy = serverProxy
         self.lossPr = lossPr
+        self.sessionToken=random.getrandbits(24)
         self.tokenSequenceList=[]
 
     def startProtocol(self):
@@ -81,7 +82,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
 
         if Type!=0:## if the datagram isn't an ACK we have to send one to the client
             
-            Ack=struct.pack('>BBHHH',16,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,0)
+            Ack=struct.pack('>BBHHH',16,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),SequenceNumber,0)
             self.transport.write(Ack,host_port)
 
         if Type==1 :
@@ -114,7 +115,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
             Version=1
             Type=2
             Payload=struct.pack('>B'+str(len(uData))+'s',ResponseCode,uData)
-            LoginResponse=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,len(Payload),Payload)
+            LoginResponse=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),SequenceNumber,len(Payload),Payload)
             self.transport.write(LoginResponse,host_port)
             #self.tokenSequenceList.append(SessionToken)
             #self.tokenSequenceList.append(SequenceNumber)

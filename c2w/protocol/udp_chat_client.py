@@ -61,7 +61,7 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         self.lossPr = lossPr
 
         self.UserId=0
-
+        self.SessionToken=0
 
     def startProtocol(self):
         """
@@ -85,13 +85,12 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
        
         Version=1
         Type=1
-        SessionToken=0
         SequenceNumber=0
         usName=userName.encode('utf-8')
         uName=struct.pack('>H'+str(len(usName))+'s',len(usName),usName)
         Payload=struct.pack('>H'+str(len(uName))+'s',0,uName)
         Psize=len(Payload)
-        LoginRequest=struct.pack('>BBHHH'+str(Psize)+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*SessionToken//(2**16),SequenceNumber,Psize,Payload)
+        LoginRequest=struct.pack('>BBHHH'+str(Psize)+'s',Version*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*self.SessionToken//(2**16),SequenceNumber,Psize,Payload)
         self.transport.write(LoginRequest,(self.serverAddress,self.serverPort))
 
         #Version=1
@@ -165,7 +164,7 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         Packet=struct.unpack('>BBHHH'+str(len(datagram)-8)+'s',datagram) 
         Version=Packet[0]//(2**4)
         Type=Packet[0]-(2**4)*(Packet[0]//(2**4))
-        SessionToken=Packet[1]*(2**16)+Packet[2]
+        self.SessionToken=Packet[1]*(2**16)+Packet[2]
         SequenceNumber=Packet[3]
         PayloadSize=Packet[4]
         Payload=Packet[5]
@@ -173,7 +172,7 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
    
         if Type!=0:## if the datagram isn't an ACK we have to send one to the client
             
-            Ack=struct.pack('>BBHHH',16,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,0)
+            Ack=struct.pack('>BBHHH',16,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),SequenceNumber,0)
             self.transport.write(Ack,host_port)
 
 
