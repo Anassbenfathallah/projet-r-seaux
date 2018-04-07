@@ -46,9 +46,9 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         #: access and modify the user list).
         self.serverProxy = serverProxy
         self.lossPr = lossPr
-        self.sessionToken=random.getrandbits(24)
+        self.SessionToken=random.getrandbits(24)
         self.tokenSequenceList=[]
-        self.sequenceNumber=0
+        self.SequenceNumber=0
 
     def startProtocol(self):
         """
@@ -73,7 +73,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         Version=Packet[0]//(2**4)
         Type=Packet[0]-(2**4)*(Packet[0]//(2**4))
         SessionToken=Packet[1]*(2**16)+Packet[2]
-        SequenceNumber=Packet[3]
+        self.SequenceNumber=Packet[3]
         PayloadSize=Packet[4]
         Payload=Packet[5]
 
@@ -83,7 +83,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
 
         if Type!=0:## if the datagram isn't an ACK we have to send one to the client
             
-            Ack=struct.pack('>BBHHH',16,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),SequenceNumber,0)
+            Ack=struct.pack('>BBHHH',16,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),self.SequenceNumber,0)
             self.transport.write(Ack,host_port)
 
         if Type==1 :
@@ -112,11 +112,10 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
                 #userID+=1
 
                 uData=struct.pack('>H'+str(len(uData[1]))+'s',userID,uData[1])
-                SessionToken=random.getrandbits(24)
             Version=1
             Type=2
             Payload=struct.pack('>B'+str(len(uData))+'s',ResponseCode,uData)
-            LoginResponse=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),SequenceNumber,len(Payload),Payload)
+            LoginResponse=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),self.SequenceNumber,len(Payload),Payload)
             self.transport.write(LoginResponse,host_port)
             #self.tokenSequenceList.append(SessionToken)
             #self.tokenSequenceList.append(SequenceNumber)
@@ -127,27 +126,27 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
             #SequenceNumber=Packet[3]
             #PayloadSize=Packet[4]
             #Payload=Packet[5]
-            def ChatMessage(self,message):
+            
                 
 
-            def RST(self,Rname):
-                if Rname='Main Room':
-                    RoomID=1
-                    MovieIP=0
-                    MoviePort=0
-                    MovieL=self.serverProxy.getMovieList()
-                else:
-                    RoomID=self.serverProxy.getMovieByTitle(Rname).movieID
-                    MovieIP=self.serverProxy.getMovieAddressPort(Rname)[0]
-                    MoviePort=self.serverProxy.getMovieAddressPort(Rname)[1]           
-                    MovieL=[]
-               RoomName=struct.pack('H'+str(len(Rname))+'s',len(Rname),Rname.encode('utf-8')
-              
-               for User in self.server.getUserList() :
-                   if User.userChatRoom=='Rname'
-                       UsersList.append(struct.pack('>HH'+str(len(User))+'s',User.userid,len(User.username),userName.encode('utf-8'))
-               Userlist.append(struct.pack('>'+str(len(User)+'s',User)
-                     
+      #        def RST(self,Rname):
+       #         if Rname='Main Room':
+       #             RoomID=1
+       #             MovieIP=0
+       #             MoviePort=0
+       #             MovieL=self.serverProxy.getMovieList()
+       #         else:
+       #             RoomID=self.serverProxy.getMovieByTitle(Rname).movieID
+       #             MovieIP=self.serverProxy.getMovieAddressPort(Rname)[0]
+       #             MoviePort=self.serverProxy.getMovieAddressPort(Rname)[1]           
+       #             MovieL=[]
+       #        RoomName=struct.pack('H'+str(len(Rname))+'s',len(Rname),Rname.encode('utf-8')
+       #       
+      #         for User in self.server.getUserList() :
+       #            if User.userChatRoom=='Rname'
+        #               UsersList.append(struct.pack('>HH'+str(len(User))+'s',User.userid,len(User.username),userName.encode('utf-8'))
+        #       Userlist.append(struct.pack('>'+str(len(User)+'s',User)"""
+                    
                        
 
                

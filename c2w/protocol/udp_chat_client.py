@@ -59,7 +59,7 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         #: to interact with the Graphical User Interface.
         self.clientProxy = clientProxy
         self.lossPr = lossPr
-        self.sequenceNumber=0
+        self.SequenceNumber=0
         self.UserId=0
         self.SessionToken=0
 
@@ -85,12 +85,11 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
        
         Version=1
         Type=1
-        SequenceNumber=0
         usName=userName.encode('utf-8')
         uName=struct.pack('>H'+str(len(usName))+'s',len(usName),usName)
         Payload=struct.pack('>H'+str(len(uName))+'s',0,uName)
         Psize=len(Payload)
-        LoginRequest=struct.pack('>BBHHH'+str(Psize)+'s',Version*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*self.SessionToken//(2**16),SequenceNumber,Psize,Payload)
+        LoginRequest=struct.pack('>BBHHH'+str(Psize)+'s',Version*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*self.SessionToken//(2**16),self.SequenceNumber,Psize,Payload)
         self.transport.write(LoginRequest,(self.serverAddress,self.serverPort))
 
         #Version=1
@@ -128,12 +127,12 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
            message is handled properly, i.e., it is shown only by the
            client(s) who are in the same room.
         """
-        Version=1
-        Type=6
-        Message=message.encode('utf-8')
-        Pld=struct.pack('>H'+str(len(Message)+'s',self.UserId,Message)
-        PldSize=len(Pld)
-        ChatMessage=struct.pack('>BBHHH'+str(Pldsize)+'s',Vesrion*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*self.SessionToken//(2**16),self.SequenceNumber,PldSize,Pld)
+        ##Version=1
+        ##Type=6
+        ##Message=message.encode('utf-8')
+        ##Pld=struct.pack('>H'+str(len(Message)+'s',self.UserId,Message)
+        ##PldSize=len(Pld)
+        ##ChatMessage=struct.pack('>BBHHH'+str(Pldsize)+'s',Vesrion*2**4+Type,self.SessionToken//(2**16),self.SessionToken-(2**16)*self.SessionToken//(2**16),self.SequenceNumber,PldSize,Pld)
         pass
 
     def sendJoinRoomRequestOIE(self, roomName):
@@ -175,10 +174,11 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         PayloadSize=Packet[4]
         Payload=Packet[5]
 
-   
+        #if Type=0 : 
+            #self.SequenceNumber+=1   
         if Type!=0:## if the datagram isn't an ACK we have to send one to the server
             
-            Ack=struct.pack('>BBHHH',16,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),SequenceNumber,0)
+            Ack=struct.pack('>BBHHH',16,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),self.SequenceNumber,0)
             self.transport.write(Ack,host_port)
 
 
