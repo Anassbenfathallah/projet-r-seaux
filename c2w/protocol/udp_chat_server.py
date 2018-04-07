@@ -48,6 +48,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         self.lossPr = lossPr
         self.sessionToken=random.getrandbits(24)
         self.tokenSequenceList=[]
+        self.sequenceNumber=0
 
     def startProtocol(self):
         """
@@ -126,7 +127,9 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
             #SequenceNumber=Packet[3]
             #PayloadSize=Packet[4]
             #Payload=Packet[5]
-           
+            def ChatMessage(self,message):
+                
+
             def RST(self,Rname):
                 if Rname='Main Room':
                     RoomID=1
