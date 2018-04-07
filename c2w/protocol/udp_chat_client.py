@@ -2,7 +2,9 @@
 from twisted.internet.protocol import DatagramProtocol
 from c2w.main.lossy_transport import LossyTransport
 import logging
+from c2w.main.client_proxy import c2wClientProxy
 from struct import *
+import struct
 logging.basicConfig()
 moduleLogger = logging.getLogger('c2w.protocol.udp_chat_client_protocol')
 
@@ -57,7 +59,9 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         #: to interact with the Graphical User Interface.
         self.clientProxy = clientProxy
         self.lossPr = lossPr
+
         self.UserId=0
+
 
     def startProtocol(self):
         """
@@ -77,17 +81,34 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         The client proxy calls this function when the user clicks on
         the login button.
         """
-	
-        moduleLogger.debug('loginRequest called with username=%s', userName)
+
+       
         Version=1
         Type=1
         SessionToken=0
         SequenceNumber=0
-        uName=struct.pack('>H'+str(len(userName.encode('utf-8')+'s',len(userName.encode('utf-8')),userName.encode('utf-8'))
-        Payload=struct.pack('>Hs',0,uName)
-        LoginRequest=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*SessionToken//(2**16),SequenceNumber,len(Payload),Payload)
+        usName=userName.encode('utf-8')
+        uName=struct.pack('>H'+str(len(usName))+'s',len(usName),usName)
+        Payload=struct.pack('>H'+str(len(uName))+'s',0,uName)
+        Psize=len(Payload)
+        LoginRequest=struct.pack('>BBHHH'+str(Psize)+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*SessionToken//(2**16),SequenceNumber,Psize,Payload)
         self.transport.write(LoginRequest,(self.serverAddress,self.serverPort))
-	 
+
+        #Version=1
+        #Type=1
+        #SessionToken=0
+        #SequenceNumber=0
+        #userName=userName.encode('utf-8')
+        #UserName=struct.pack('>H'+str(len(userName))+'s',len(userName),userName)
+        #Payload=struct.pack('>H'+str(len(UserName))+'s',0,UserName)
+        #PayloadSize=len(Payload)
+        #LRQ=struct.pack('>BBHHH'+str(PayloadSize)+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*SessionToken//(2**16),SequenceNumber,PayloadSize,Payload)
+        #self.transport.write(LRQ,(self.serverAddress,self.serverPort))
+
+
+
+
+	
 	
 
 
@@ -140,15 +161,20 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         Called **by Twisted** when the client has received a UDP
         packet.
         """
-        Packet=struct.unpack('>BBHHH'+str(len(datagram)+'s',datagram)Packet=struct.unpack('>BBHHH'+str(len(datagram-8))+'s',datagram) 
-        Version=Packet[0]//2**4
-        Type=Packet[0]-Packet[0]//2**4
+
+        Packet=struct.unpack('>BBHHH'+str(len(datagram)-8)+'s',datagram) 
+        Version=Packet[0]//(2**4)
+        Type=Packet[0]-(2**4)*(Packet[0]//(2**4))
         SessionToken=Packet[1]*(2**16)+Packet[2]
         SequenceNumber=Packet[3]
-        len(Payload)=Packet[4] 
+        PayloadSize=Packet[4]
+        Payload=Packet[5]
 
-        if Type!=0:## if the datagram isn't an ACK we have to send one to the server
+   
+        if Type!=0:## if the datagram isn't an ACK we have to send one to the client
             
-            ACK=struct.pack('BBBHHH',1,0,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,0)
-            self.transport.write(ACK,host_port)
+            Ack=struct.pack('>BBHHH',16,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,0)
+            self.transport.write(Ack,host_port)
+
+
         pass
