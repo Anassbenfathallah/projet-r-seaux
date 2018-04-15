@@ -46,7 +46,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         #: access and modify the user list).
         self.serverProxy = serverProxy
         self.lossPr = lossPr
-        self.tokenSequenceList=[]
+        self.tokenList=[]
 
     def startProtocol(self):
         """
@@ -68,20 +68,45 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         packet.  You cannot change the signature of this method.
         """
         Packet=struct.unpack('>BBHHH'+str(len(datagram)-8)+'s',datagram) 
-        Version=Packet[0]//(2**4)
-        Type=Packet[0]-(2**4)*(Packet[0]//(2**4))
-        SessionToken=Packet[1]*(2**16)+Packet[2]
-        SequenceNumber=Packet[3]
-        PayloadSize=Packet[4]
+        Version=Packet[0]//16
+        Type=Packet[0]-16*(Packet[0]//(16))
+        Token=Packet[1]*(2**16)+Packet[2]
+        Number=Packet[3]
+        PSize=Packet[4]
         Payload=Packet[5]
 
-        #if Type==0:
-          #self.tokenSequenceNumber.remove(SessionToken,SequenceNumber)
-        #if SequenceNumber and SessionToken not in self.SequenceTokenList: 
-
+       def RST(self,Rname):
+              RoomName=struct.pack('H'+str(len(Rname))+'s',len(Rname),Rname.encode('utf-8'))
+              UsersList=[]
+              if Rname=='Main Room':# si la  salle en question est la main room on connaît déja son ID , son IP et Port
+                  RoomID=1
+                  MovieIP=0
+                  MoviePort=0
+                  MovieL=self.serverProxy.getMovieList()
+              else:# sinon on les trouve grâce aux méthodes du serverProxy
+                  RoomID=self.serverProxy.getMovieByTitle(Rname).movieID
+                  MovieIP=self.serverProxy.getMovieAddressPort(Rname)[0]
+                  MoviePort=self.serverProxy.getMovieAddressPort(Rname)[1]           
+                  MovieL=[]#la liste des films est vide si on ne se trouve pas dans la mainroom
+              for User in self.serverProxy.getUserList() :
+                  if User.userChatRoom=='Rname':
+                      UsersList.append(struct.pack('>HH'+str(len(User))+'s',User.userid,len(User.username),userName.encode('utf-8')))
+              UsersListSize=len(UsersList)
+              UsersList=struct.pack('>H',UsersListsize).extend(UsersList)
+              RoomList=[]
+              RoomList.append(len(MovieL))
+              return([RoomID,RoomNameMovieIP,MoviePort,MovieL,UsersList,RoomList])
+              for Movie in MovieL : 
+                  RoomList.extend(RST(self,Movie))#structure récursive
+              Payload=struct.pack('>H'+str(len(RoomName))+'sIH'+str(len(UserList))+'s'+str(len(RoomList))+'s',RoomID,RoomName,MovieIP,MoviePort,UsersList,RoomList)
+              PSize=len(Payload)
+              RST=struct.pack('>BBHHH'+str(PSize)+'s',20,Token//(2**16),Token-(2**16)*(Token//(2**16)),Number,PSize,Payload)
+              self.transport.write(RST,User.userAddress)
+                   
+        
         if Type!=0:## if the datagram isn't an ACK we have to send one to the client
             
-            Ack=struct.pack('>BBHHH',16,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,0)
+            Ack=struct.pack('>BBHHH',16,Token//(2**16),Token-(2**16)*(Token//(2**16)),Number,0)
             self.transport.write(Ack,host_port)
 
         if Type==1 :
@@ -110,62 +135,64 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
                 #userID+=1
 
                 uData=struct.pack('>H'+str(len(uData[1]))+'s',userID,uData[1])
-                SessionToken=random.getrandbits(24)
+                Token=random.getrandbits(24)
             Version=1
             Type=2
             Payload=struct.pack('>B'+str(len(uData))+'s',ResponseCode,uData)
-            LoginResponse=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,len(Payload),Payload)
+            LoginResponse=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,Token//(2**16),Token-(2**16)*(Token//(2**16)),Number,len(Payload),Payload)
             self.transport.write(LoginResponse,host_port)
-            #self.tokenSequenceList.append(SessionToken)
-            #self.tokenSequenceList.append(SequenceNumber)
-            #Packet=struct.unpack('>BBHHH'+str(len(datagram)-8)+'s',datagram)
-            #Version=Packet[0]//2**4
-            #Type=Packet[0]-Packet[0]//2**4
-            #SessionToken=Packet[1]*(2**16)+Packet[2]
-            #SequenceNumber=Packet[3]
-            #PayloadSize=Packet[4]
-            #Payload=Packet[5]
+   
+        if Type==4:
+            
+            self.RST('Main Room')
+         
            
             def RST(self,Rname):
-                if Rname='Main Room':
+                RoomName=struct.pack('H'+str(len(Rname))+'s',len(Rname),Rname.encode('utf-8'))
+                UsersList=[]
+                if Rname=='Main Room':# si la  salle en question est la main room on connaît déja son ID , son IP et Port
                     RoomID=1
                     MovieIP=0
                     MoviePort=0
                     MovieL=self.serverProxy.getMovieList()
-                else:
+                else:# sinon on les trouve grâce aux méthodes du serverProxy
                     RoomID=self.serverProxy.getMovieByTitle(Rname).movieID
                     MovieIP=self.serverProxy.getMovieAddressPort(Rname)[0]
                     MoviePort=self.serverProxy.getMovieAddressPort(Rname)[1]           
-                    MovieL=[]
-               RoomName=struct.pack('H'+str(len(Rname))+'s',len(Rname),Rname.encode('utf-8')
-              
-               for User in self.server.getUserList() :
-                   if User.userChatRoom=='Rname'
-                       UsersList.append(struct.pack('>HH'+str(len(User))+'s',User.userid,len(User.username),userName.encode('utf-8'))
-               Userlist.append(struct.pack('>'+str(len(User)+'s',User)
-                     
-                       
+                    MovieL=[]#la liste des films est vide si on ne se trouve pas dans la mainroom
+                for User in self.serverProxy.getUserList() :
+                    if User.userChatRoom=='Rname':
+                        UsersList.append(struct.pack('>HH'+str(len(User))+'s',User.userid,len(User.username),userName.encode('utf-8')))
+                UsersListSize=len(UsersList)
+                UsersList=struct.pack('>H',UsersListsize).extend(UsersList)
+                RoomList=[]
+                RoomList.append(len(MovieL))
+                return([RoomID,RoomNameMovieIP,MoviePort,MovieL,UsersList,RoomList])
+                for Movie in MovieL : 
+                    RoomList.extend(RST(self,Movie))#structure récursive
+                Payload=struct.pack('>H'+str(len(RoomName))+'sIH'+str(len(UserList))+'s'+str(len(RoomList))+'s',RoomID,RoomName,MovieIP,MoviePort,UsersList,RoomList)
+                PSize=len(Payload)
+                RST=struct.pack('>BBHHH'+str(PSize)+'s',20,Token//(2**16),Token-(2**16)*(Token//(2**16)),Number,PSize,Payload)
+                self.transport.write(RST,User.userAddress)
+                   
+                    
+    
+        if Type==5:
+            RoomID=struct.unpack('>H',Payload)[0]
+            RoomName=self.serverProxy.getMovieById(RoomID)
+            if MovieName==None:
+                RoomName='Main Room'
+            else : 
+                RoomName=self.serverProxy.getMovieById(RoomId).movieTitle
 
-               
+       if Type==7:
+           # on trouve le username qui a pour session Token celui envoyé deans le LOR
+           self.serverProxy.removeUser(UserName)
+                
+            
+                                    
         
-        
-            #self.serverProxy.addUser(userName,'Main Room',None,host_port)
-            #SequenceNumber+=1
-            #RoomIdentifier=1 
-            #RoomName=struct.pack('>H9s',9,'Main Room'.encode('utf-8'))
-            #MovieIP=0
-            #MoviePort=0
-            #UsersMainRoom=[]
-            #for user in self.serverProxy.getUserList():
-                #if user.userChatRoom=='Main Room':
-                        #UsersMainRoom.append(struct.pack('>HH'+str(len(user.userName))+'s',user.userId,len(user.userName),userName.encode('utf-8')))
-          #NumberOfFilms=len(self.serverProxy.getUserList())
-          #for Movie in self.serverProxy.getUserList():
-              #RoomId=self.serverProxy.getMovieAddrPort(Movie)
-              #RoomName=self.serverProxy.
-         #length UsersMainRoom
-#Room List : number of films available , pour chaque film Room Identifier , Room Name , MovieIP , MoviePort
-
+           
 
                  
             

@@ -59,8 +59,11 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         #: to interact with the Graphical User Interface.
         self.clientProxy = clientProxy
         self.lossPr = lossPr
-
+        self.Rooms=[]
+        self.NamesID=[]
         self.UserId=0
+        self.Token=0
+        self.SeqNumber=0
 
 
     def startProtocol(self):
@@ -82,31 +85,18 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         the login button.
         """
 
-       
-        Version=1
-        Type=1
-        SessionToken=0
-        SequenceNumber=0
         usName=userName.encode('utf-8')
-        uName=struct.pack('>H'+str(len(usName))+'s',len(usName),usName)
         Payload=struct.pack('>H'+str(len(uName))+'s',0,uName)
-        Psize=len(Payload)
-        LoginRequest=struct.pack('>BBHHH'+str(Psize)+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*SessionToken//(2**16),SequenceNumber,Psize,Payload)
+        PSize=len(Payload)
+        uName=struct.pack('>H'+str(len(usName))+'s',len(usName),usName)
+        SeqNumber=0
+        Token=0
+        Type=1
+        Version=1     
+        LoginRequest=struct.pack('>BBHHH'+str(PSize)+'s',Version*2**4+Type,Token//(2**16),Token-(2**16)*Token//(2**16),SeqNumber,PSize,Payload)
         self.transport.write(LoginRequest,(self.serverAddress,self.serverPort))
 
-        #Version=1
-        #Type=1
-        #SessionToken=0
-        #SequenceNumber=0
-        #userName=userName.encode('utf-8')
-        #UserName=struct.pack('>H'+str(len(userName))+'s',len(userName),userName)
-        #Payload=struct.pack('>H'+str(len(UserName))+'s',0,UserName)
-        #PayloadSize=len(Payload)
-        #LRQ=struct.pack('>BBHHH'+str(PayloadSize)+'s',Version*2**4+Type,SessionToken//(2**16),SessionToken-(2**16)*SessionToken//(2**16),SequenceNumber,PayloadSize,Payload)
-        #self.transport.write(LRQ,(self.serverAddress,self.serverPort))
-
-
-
+        
 
 	
 	
@@ -127,8 +117,17 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
            of the room where the user is.  Therefore it is up to the
            c2wChatClientProctocol or to the server to make sure that this
            message is handled properly, i.e., it is shown only by the
-           client(s) who are in the same room.
-        """
+           client(s) who are in the same room."""
+        SeqNumber=self.SeqNumber
+        self.SeqNumber=self.SeqNumber+1
+        Token=self.Token
+        Type=6
+        Version=1
+        Mess=message.encode('utf-8')
+        Payload=struct.pack('>H'+str(len(Mess))+'s',self.UserID,Mess)
+        PSize=len(Payload)
+        Message=struct.pack('>BBHHH'+str(PSize)+'s',Version*2**4+Type,Token//(2**16),Token-(2**16)*(Token//(2**16)),SeqNumber,PSize,Payload)
+        self.transport.write(Message,(self.serverAddress,self.serverPort))
         pass
 
     def sendJoinRoomRequestOIE(self, roomName):
@@ -140,10 +139,26 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         indicating that she/he wants to change room.
 
         .. warning:
-            The controller sets roomName to
             c2w.main.constants.ROOM_IDS.MAIN_ROOM when the user
             wants to go back to the main room.
         """
+        SeqNumber=self.SeqNumber
+        self.SeqNumber=self.SeqNumber+1
+        SeqNumber=self.SeqNumber
+        Token=self.Token
+        Type=5      
+        Version =1
+        
+        PSize=2
+        RoomID=0
+        for i in self.Rooms:
+            if i[0]==roomName:
+                RoomID=i[1]
+        GoToRoom=struct.pack('>BBHHHH',Version*2**4+Type,Token//(2**16),Token-(2**16)*(Token//(2**16)),SeqNumber,PSize,RoomID)
+        self.transport.write(GoToRoom,(self.serverAddress,self.serverPort))
+        
+        
+
         pass
 
     def sendLeaveSystemRequestOIE(self):
@@ -151,6 +166,14 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         Called by the client proxy  when the user
         has clicked on the leave button in the main room.
         """
+        self.SeqNumber=self.SeqNumber+1 
+        Token=self.Token
+        Type=7       
+        Version=1
+        
+        PSize=0
+        LeaveMessage=struct.pack('>BBHHH',Version*2**4+Type,Token//(2**16),Token-(2**16)*(Token//(2**16)),SeqNumber,PSize)
+        self.transport.write(LeaveMessage,(self.serverAddress,self.serverPort))
         pass
 
     def datagramReceived(self, datagram, host_port):
@@ -165,16 +188,91 @@ class c2wUdpChatClientProtocol(DatagramProtocol):
         Packet=struct.unpack('>BBHHH'+str(len(datagram)-8)+'s',datagram) 
         Version=Packet[0]//(2**4)
         Type=Packet[0]-(2**4)*(Packet[0]//(2**4))
-        SessionToken=Packet[1]*(2**16)+Packet[2]
-        SequenceNumber=Packet[3]
-        PayloadSize=Packet[4]
+        Token=Packet[1]*(2**16)+Packet[2]
+        SeqNumber=Packet[3]
+        PSize=Packet[4]
         Payload=Packet[5]
 
    
         if Type!=0:## if the datagram isn't an ACK we have to send one to the client
             
-            Ack=struct.pack('>BBHHH',16,SessionToken//(2**16),SessionToken-(2**16)*(SessionToken//(2**16)),SequenceNumber,0)
+            Ack=struct.pack('>BBHHH',16,Token//(2**16),Token-(2**16)*(Token//(2**16)),SeqNumber,0)
             self.transport.write(Ack,host_port)
+
+        if Type==2 :
+            Data=struct.unpack('>B'+str(len(Payload)-1)+'s',Payload)
+            RespCode=Data[0]
+            User=struct.unpack('H'+str(len(Data[1])-2)+'s',Data[1])
+            UserId=User[0]
+            userName=struct.unpack('>H'+str(len(User[1])-2)+'s',User[1])[1].decode('utf-8')
+            if RespCode == 1 :
+                self.clientProxy.connectionRejectionONE('Invalid Use')
+            elif RespCode == 2 :
+                self.clientProxy.connectionRejectedONE('Username too long')
+            elif RespCode ==3 :
+                self.clientProxy.connectionRejectedONE('Username not available')
+            elif RespCode == 4 :
+                self.clientProxy.connectionRejectedONE('Service not available')
+
+        if Type==4:
+            Users=[]
+            (RoomID,RoomNameSize,Payload)=struct.unpack('>HH'+str(len(Payload)-4)+'s',Payload)
+            (RoomName,Payload)=struct.unpack('>'+str(RoomNameSize)+'s'+str(len(Payload)-RoomNameSize)+'s',Payload)
+            (MovieIP,MoviePort,UserListSize,Payload)=struct.unpack('>IHH'+str(len(Payload)-8)+'s',Payload)
+            RoomName=RoomName.decode('utf-8')
+            self.Rooms.append((RoomName,RoomID))
+            for i in range(UserListSize) : 
+                (UserId,UserNameSize,Payload)=struct.unpack('>HH'+str(len(Payload)-4)+'s',Payload)
+                (UserName,Payload)=struct.unpack('>'+str(UserNameSize)+'s'+str(len(Payload)-UserNameSize)+'s',Payload)
+                UserName=UserName.decode('utf-8')
+                Users.append((UserName,RoomName))
+                self.NamesID.append((UserId,UserName))
+            (RoomListSize,Payload)=struct.unpack('>H'+str(len(Payload)-2)+'s',Payload)
+            movieList=[]
+            for i in range(RoomListSize):
+                (RoomID,RoomNameSize,Payload)=struct.unpack('>HH'+str(len(Payload)-4)+'s',Payload)
+                (RoomName,Payload)=struct.unpack('>'+str(RoomNameSize)+'s'+str(len(Payload)-RoomNameSize)+'s',Payload)
+                (MovieIP,MoviePort,UserListSize,Payload)=struct.unpack('>IHH'+str(len(Payload)-8)+'s',Payload)
+                RoomName=RoomName.decode('utf-8')
+                self.Rooms.append((RoomName,RoomID))  
+                movieList.append((RoomName,MovieIP,MoviePort))
+                for i in range(UserListSize):
+                    (UserID,UserNameSize,Payload)=struct.unpack('>HH'+str(len(Payload)-4)+'s',Payload)
+                    (UserName,Payload)=struct.unpack('>'+str(UserNameSize)+'s'+str(len(Payload)-UserNameSize)+'s',Payload)
+                    UserName=UserName.decode('utf-8')
+                    self.IdNames.append((UserId,UserName))                  
+                    Users.append((UserName,RoomName))
+                (RoomListSize,Payload)=struct.unpack('>H'+str(len(Payload)-2)+'s',Payload) 
+            if SeqNumber==1:
+                self.clientProxy.initCompleteONE(Users,movieList)
+            else:
+                self.clientProxy.setUserListONE(Users)
+
+
+        if Type==5:
+    
+            self.clientProxy.joinRoomOKONE()
+
+        if Type==6:
+            (UserId,MessageSize,Message)=struct.unpack('>HH'+str(PSize-4)+'s',Payload)
+            MSG=Message.decode('utf8')
+            for User in self.NamesID:
+                if User[0]==UserId:
+                    UserName=User[1]
+            self.clientProxy.chatMessageReceivedONE(UserName,Message)
+
+
+        if Type==7:
+
+            self.clientProxy.leaveSystemOKONE()
+        
+              
+              
+          
+            
+            
+            
+
 
 
         pass
