@@ -6,6 +6,7 @@ import struct
 import random
 from c2w.main.constants import ROOM_IDS
 from c2w.main.server_proxy import c2wServerProxy
+from twisted.internet import reactor
 
 logging.basicConfig()
 moduleLogger = logging.getLogger('c2w.protocol.udp_chat_server_protocol')
@@ -16,9 +17,11 @@ def encodeIPadress(IP):
     return struct.pack('>BBBB',int(x),int(y),int(z),int(a))
             
 class c2wUdpChatServerProtocol(DatagramProtocol):
+    nbreOfHelloSent={}
     UserToken={}
     hostPortSequence={}
-    def __init__(self, serverProxy, lossPr):
+    lastSequencehostportHello={}
+    def __init__(self, serverProxy, lossPr,sequenceNumberSentHello=None):
         """
         :param serverProxy: The serverProxy, which the protocol must use
             to interact with the user and movie store (i.e., the list of users
@@ -57,7 +60,9 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         self.tokenSequenceList=[]
         self.SequenceNumber=0
         self.userID=0
-
+        self.ACK=False
+        self.c=0
+        self.sequenceNumberSentHello=sequenceNumberSentHello
     def startProtocol(self):
         """
         DO NOT MODIFY THE FIRST TWO LINES OF THIS METHOD!!
@@ -90,11 +95,13 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         c2wUdpChatServerProtocol.hostPortSequence[host_port]=Packet[3]
         PayloadSize=Packet[4]
         Payload=Packet[5]
-            
+        
 
-        #if Type==0:
-          #self.tokenSequenceNumber.remove(SessionToken,SequenceNumber)
-        #if SequenceNumber and SessionToken not in self.SequenceTokenList: 
+        if Type==0:
+            if self.sequenceNumberSentHello==c2wUdpChatServerProtocol.hostPortSequence[host_port]:
+                self.ACK=True
+          
+         
 
         if Type!=0:## if the datagram isn't an ACK we have to send one to the client
             Ack=struct.pack('>BBHHH',16,self.SessionToken//(2**16),self.SessionToken-(2**16)*(self.SessionToken//(2**16)),c2wUdpChatServerProtocol.hostPortSequence[host_port],0)
@@ -180,13 +187,22 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
                     sessionToken=c2wUdpChatServerProtocol.UserToken[user.userName]
                     Message=struct.pack('>BBHHH'+str(len(Payload))+'s',Version*2**4+Type,sessionToken//(2**16),sessionToken-(2**16)*(sessionToken//(2**16)),c2wUdpChatServerProtocol.hostPortSequence[user.userAddress],len(Payload),Payload)
                     self.transport.write(Message,user.userAddress)
+        if c2wUdpChatServerProtocol.hostPortSequence[host_port]>=1:
+            Hello=reactor.callLater(10,self.Hello,host_port)
+            if self.c==3 : 
+                username=self.serverProxy.getUserByAddress(host_port).userName
+                self.serverProxy.removeUser(username)
+                self.sendToAll(Version)
+            
                     
     def sendToAll(self,Version):
         Type=4
         RST=self.RST('Main Room')
+        
         print(c2wUdpChatServerProtocol.UserToken)
         for user in self.serverProxy.getUserList():
             c2wUdpChatServerProtocol.hostPortSequence[user.userAddress]+=1
+            c2wUdpChatServerProtocol.lastSequencehostportHello=c2wUdpChatServerProtocol.hostPortSequence
             sessionToken=c2wUdpChatServerProtocol.UserToken[user.userName]
             RSTall=struct.pack('>BBHHH',Version*2**4+Type,sessionToken//(2**16),sessionToken-(2**16)*(sessionToken//(2**16)),c2wUdpChatServerProtocol.hostPortSequence[user.userAddress],len(RST))+RST
             self.transport.write(RSTall,user.userAddress)
@@ -231,8 +247,25 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
                 Userlist+=user
             
             return struct.pack('>H',RoomId)+RoomName+encodeIPadress(MovieIP)+struct.pack('>H',MoviePort)+Userlist+struct.pack('>H',len(MovieL))
-
+    def Hello(self,host_port):
         
+        for user in self.serverProxy.getUserList():
+            if user.userAddress==host_port:
+                username=user.userName
+        
+        c2wUdpChatServerProtocol.hostPortSequence[host_port]+=1
+        sessionToken=c2wUdpChatServerProtocol.UserToken[username]
+        self.sequenceNumberSentHello=c2wUdpChatServerProtocol.hostPortSequence[host_port]
+        Version=1
+        Type=8
+        self.c+=1
+        Hello=struct.pack('>BBHHH',Version*2**4+Type,self.SessionToken//(2**16),sessionToken-(2**16)*(sessionToken//(2**16)),c2wUdpChatServerProtocol.hostPortSequence[user.userAddress],0)
+        self.transport.write(Hello,host_port)
+        if self.c<=3:
+            if self.ACK==False : 
+                c2wUdpChatServerProtocol.hostPortSequence[host_port]=c2wUdpChatServerProtocol.hostPortSequence[host_port]-1    
+                reactor.callLater(10,self.Hello,host_port)
+           
 #self.serverProxy.addUser(userName,'Main Room',None,host_port)
             #SequenceNumber+=1
             #RoomIdentifier=1 
