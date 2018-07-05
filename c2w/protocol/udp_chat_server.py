@@ -93,7 +93,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
         
         else :self.SessionToken=Packet[1]*(2**16)+Packet[2]
         
-        c2wUdpChatServerProtocol.hostPortSequence[host_port]=Packet[3]
+        
         PayloadSize=Packet[4]
         Payload=Packet[5]
         self.SequenceNumber=Packet[3]
@@ -102,6 +102,7 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
             if self.sequenceNumberSentHello==c2wUdpChatServerProtocol.hostPortSequence[host_port]:
                 self.ACK=True
               
+        c2wUdpChatServerProtocol.hostPortSequence[host_port]=Packet[3]
             
                 
           
@@ -123,9 +124,9 @@ class c2wUdpChatServerProtocol(DatagramProtocol):
             for movie in self.serverProxy.getMovieList():
                 if movie.movieId==roomID:
                     self.serverProxy.updateUserChatroom(user.userName,movie.movieTitle)
-                    #self.serverProxy.startStreamingMovie(movie.movieTitle)
+                    self.serverProxy.startStreamingMovie(movie.movieTitle)
             if roomID==1:
-                #self.serverProxy.stopStreamingMovie(user.userChatRoom)
+                self.serverProxy.stopStreamingMovie(user.userChatRoom)
                 self.serverProxy.updateUserChatroom(user.userName,ROOM_IDS.MAIN_ROOM)
                 
             

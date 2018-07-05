@@ -105,7 +105,7 @@ def getnameandid(payload):
     return (usrid,userName)
 
 class c2wTcpChatClientProtocol(Protocol):
-
+    UserIdDict={}
     def __init__(self, clientProxy, serverAddress, serverPort,lastSequenceNumberSentJR=None,lastSequenceNumberSentLS=None,lastSequenceNumberSentLR=None,lastSequenceNumberSentSM=None,lastSequenceNber=0):
         """
         :param clientProxy: The clientProxy, which the protocol must use
@@ -304,7 +304,11 @@ class c2wTcpChatClientProtocol(Protocol):
         
         while len(self.theData)>=8 :
             print(self.theData)
-            Packet=struct.unpack('>BBHHH'+str(len(self.theData)-8)+'s',self.theData)
+            if len(self.theData)==8 :
+               Packet=struct.unpack('>BBHHH',self.theData)
+            else : 
+                Packet=struct.unpack('>BBHHH'+str(len(self.theData)-8)+'s',self.theData)
+                Payload=Packet[5]            
             self.allPayloadSize=Packet[4]
             Type=Packet[0]-(2**4)*(Packet[0]//(2**4))
             if len(Packet[5])>=self.allPayloadSize:
@@ -315,7 +319,7 @@ class c2wTcpChatClientProtocol(Protocol):
                 self.SessionToken=Packet[1]*(2**16)+Packet[2]
                 self.SequenceNumber=Packet[3]
                 PayloadSize=self.allPayloadSize
-                Payload=Packet[5]
+                
                 if Type==0: 
                     if self.SequenceNumber==self.lastSequenceNumberSentLR:
                         self.ACKLR=True
@@ -354,12 +358,12 @@ class c2wTcpChatClientProtocol(Protocol):
                     if ResponseCode==4:
                         self.clientProxy.connectionRejectedONE('Connection failed : Service not available!')
                 if Type==4 and self.SequenceNumber==1 :
-                    c2wUdpChatClientProtocol.UserIdDict=decodeRSTPayload(Payload)[2]
+                    c2wTcpChatClientProtocol.UserIdDict=decodeRSTPayload(Payload)[2]
                     (userList,self.movieList)=decodeRSTPayload(Payload)[0:2]
             
                     self.clientProxy.initCompleteONE(userList,self.movieList)
                 if Type==4 and self.SequenceNumber!=1 :
-                    c2wUdpChatClientProtocol.UserIdDict=decodeRSTPayload(Payload)[2]
+                    c2wTcpChatClientProtocol.UserIdDict=decodeRSTPayload(Payload)[2]
                     userList=decodeRSTPayload(Payload)[0]
             #print(userList)
                     self.clientProxy.setUserListONE(userList) 
@@ -369,12 +373,12 @@ class c2wTcpChatClientProtocol(Protocol):
                     MessageandId=struct.unpack('>HH'+str(len(Payload)-4)+'s',Payload)
                     Message=MessageandId[2].decode('utf-8')
                     Id=MessageandId[0]
-                    username=c2wUdpChatClientProtocol.UserIdDict[Id]
+                    username=c2wTcpChatClientProtocol.UserIdDict[Id]
                     print('me'+str(username))
                     self.clientProxy.chatMessageReceivedONE(username,Message)
                 if Type==3 :
                     userList=decodeRSTPayload(Payload)[0]
-                    c2wUdpChatClientProtocol.UserIdDict=decodeRSTPayload(Payload)[2]
+                    c2wTcpChatClientProtocol.UserIdDict=decodeRSTPayload(Payload)[2]
                     for user in userList:
                         self.clientProxy.userUpdateReceivedONE(user[0],user[1])
                 print(self.theData)
